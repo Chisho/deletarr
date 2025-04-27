@@ -233,6 +233,14 @@ def process_service(service_name, service_config, qbit, dry_run):
         else:
             logging.debug(f"[{service_name}] At least one file exists for torrent '{torrent['name']}' ({torrent['hash']}). No action taken.")
 
+    # --- SAFETY CHECK: max_delete_percent ---
+    max_delete_percent = service_config.get('max_delete_percent', None)
+    if max_delete_percent is not None and torrents:
+        percent_to_delete = (len(torrents_to_delete) / len(torrents)) * 100
+        if percent_to_delete > max_delete_percent:
+            logging.error(f"[{service_name}] ABORTING: {percent_to_delete:.1f}% of torrents would be deleted, which exceeds max_delete_percent={max_delete_percent}. No deletions performed.")
+            return
+
     if torrents_to_delete:
         if dry_run:
             logging.info(f"[{service_name}] Dry run: would delete {len(torrents_to_delete)} torrents and their content: {torrents_to_delete_names}")
