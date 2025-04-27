@@ -1,5 +1,10 @@
 # Deletarr
 
+> **Warning:** Do not run this script with deletion enabled until you have tested it with `dry_run: true`. Always verify the output to ensure it will not delete files you want to keep. Use at your own risk!
+
+> **Disclaimer:**
+> This tool is intended for legal use only. The authors and contributors do not condone, support, or encourage the use of this software for copyright infringement or any other illegal activity. It is the user's responsibility to ensure that their use of this tool complies with all applicable laws and regulations in their jurisdiction.
+
 This container sets up a cron scheduler that will automatically run `deletarr.py` at the scheduled interval. The script checks for missing media files in your Radarr/Sonarr libraries and deletes the corresponding qBittorrent data for these files. The qBittorrent search is category-based, so you must configure the appropriate categories in your `config.yml` file to match your Radarr/Sonarr download categories.
 
 ## Quick Setup
