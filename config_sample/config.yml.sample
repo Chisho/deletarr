@@ -1,0 +1,26 @@
+# qBittorrent settings
+qBittorrent:
+  url: "YOUR_BITTORRENT_URL"
+  username: "YOUR_BITTORRENT_USERNAME"
+  password: "YOUR_BITTORRENT_PASSWORD"
+
+# Radarr settings
+Radarr:
+  url: "YOUR_RADARR_USERNAME"
+  api_key: "YOUR_RADARR_API_KEY"
+  root_folder: "YOUR_RADARR_ROOT_FOLDER"
+  category: "radarr"
+
+# Sonarr settings
+Sonarr:
+  url: "YOUR_SONARR_USERNAME"
+  api_key: "YOUR_SONARR_API_KEY"
+  root_folder: "YOUR_SONARR_ROOT_FOLDER"
+  category: "tv-sonarr"
+
+# Script options
+dry_run: false  # Set to false to enable actual deletion
+logging:
+  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
+  file: "deletarr.log"
+  max_delete_percent: 30  # Abort if more than this percent of torrents would be deleted
