@@ -47,7 +47,8 @@ class QbitClient:
                     'hash': t.hash,
                     'name': t.name,
                     'category': t.category,
-                    'save_path': t.save_path
+                    'save_path': t.save_path,
+                    'completion_on': getattr(t, 'completion_on', None)  # Add completion time
                 }
                 for t in torrents
                 if t.category in categories and not t.state.startswith('downloading')
@@ -210,10 +211,19 @@ def process_service(service_name, service_config, qbit, dry_run):
             logging.warning(f"[{service_name}] Could not get files for torrent {torrent_hash}: {e}")
             return []
 
+    # --- Wait at least 10 minutes after completion before deleting ---
+    now = int(time.time())
+    min_age_sec = 10 * 60  # 10 minutes
+    
     torrents_to_delete = []
     torrents_to_delete_names = []
     for torrent in torrents:
         logging.debug(f"[{service_name}] Checking torrent: {torrent['name']} | Hash: {torrent['hash']} | Save Path: {torrent['save_path']}")
+        # Check completion time
+        completion_on = torrent.get('completion_on')
+        if completion_on is not None and now - int(completion_on) < min_age_sec:
+            logging.info(f"[{service_name}] Torrent '{torrent['name']}' ({torrent['hash']}) finished less than 10 minutes ago. Skipping deletion.")
+            continue
         torrent_files = get_torrent_files(torrent['hash'])
         logging.debug(f"[{service_name}] Number of files for '{torrent['name']}': {len(torrent_files)}")
         if not torrent_files:
