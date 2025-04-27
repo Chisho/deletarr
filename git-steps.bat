@@ -18,9 +18,11 @@ pause
 
 :: Tagging
 echo Creating a new tag...
-echo Current version in version.txt:
+echo Current Version: 
 type version.txt
+echo.
 set /p TAG="Enter tag name (e.g., 0.1.0): "
+set TAG=v%TAG%
 git tag %TAG%
 echo %TAG% > version.txt
 echo version.txt updated to %TAG%
@@ -29,7 +31,6 @@ pause
 :: Push tag
 echo Pushing tag to remote...
 git push origin %TAG%
-pause
 
 echo All done!
 pause

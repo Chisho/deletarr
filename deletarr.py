@@ -48,12 +48,12 @@ class QbitClient:
                     'name': t.name,
                     'category': t.category,
                     'save_path': t.save_path,
-                    'completion_on': getattr(t, 'completion_on', None)  # Add completion time
+                    'completion_on': getattr(t, 'completion_on', None)
                 }
                 for t in torrents
-                if t.category in categories and not t.state.startswith('downloading')
+                if t.category in categories and getattr(t, 'progress', 0) == 1.0
             ]
-            logging.info(f"Fetched {len(filtered)} torrents for categories {categories} (not downloading)")
+            logging.info(f"Fetched {len(filtered)} torrents for categories {categories} (fully downloaded)")
             return filtered
         except Exception as e:
             logging.error(f"Failed to fetch torrents: {e}")
