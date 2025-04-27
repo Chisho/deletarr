@@ -50,9 +50,9 @@ class QbitClient:
                     'save_path': t.save_path
                 }
                 for t in torrents
-                if t.category in categories and t.state == 'pausedUP' and not t.state.startswith('downloading')
+                if t.category in categories and not t.state.startswith('downloading')
             ]
-            logging.info(f"Fetched {len(filtered)} torrents for categories {categories} (finished and not downloading)")
+            logging.info(f"Fetched {len(filtered)} torrents for categories {categories} (not downloading)")
             return filtered
         except Exception as e:
             logging.error(f"Failed to fetch torrents: {e}")
@@ -244,10 +244,17 @@ def process_service(service_name, service_config, qbit, dry_run):
 
 # --- Main logic ---
 def main():
-    config_path = os.environ.get('DELETARR_CONFIG', '/config/config.yml')
+    # Default to local debug path, override with env var or use production Docker path
+    default_config = './config/config.yml'
+    docker_config = '/config/config.yml'
+    
+    config_path = os.environ.get('DELETARR_CONFIG')
+    if config_path is None:
+        config_path = docker_config if os.path.exists(docker_config) else default_config
+    
     config = load_config(config_path)
     setup_logging(config['logging'])
-    logging.info('Script started')
+    logging.info(f'Script started using config: {config_path}')
 
     qbit = QbitClient(config['qBittorrent'])
     dry_run = config.get('dry_run', True)

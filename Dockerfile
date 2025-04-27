@@ -1,10 +1,17 @@
 # Start from your base image (e.g., python:3.10-slim)
 FROM python:3.10-slim
 
+LABEL version="0.0.1"
+LABEL description="Automatically clean up torrents from qBittorrent that are no longer in Radarr/Sonarr"
+LABEL maintainer="Your Name <your.email@example.com>"
+
 WORKDIR /app
 
 # Install cron
 RUN apt-get update && apt-get install -y cron && rm -rf /var/lib/apt/lists/*
+
+# Copy version file
+COPY version.txt /app/version.txt
 
 # Copy requirements if present
 COPY requirements.txt /app/requirements.txt

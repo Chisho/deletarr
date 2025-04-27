@@ -53,6 +53,56 @@ docker run -d \
 
 - `DELETARR_CONFIG`: Path to config file (default: `/config/config.yml`)
 
+## Building and Publishing Docker Images
+
+### Manual Build
+
+The project uses semantic versioning, with the current version tracked in `version.txt`. To build and publish the Docker image:
+
+1. Make sure you're logged into Docker Hub:
+   ```bash
+   docker login
+   ```
+
+2. Set your Docker Hub username and run the build script:
+   ```cmd
+   set DOCKER_USERNAME=yourusername
+   build-and-push.bat
+   ```
+   
+   For Linux/Mac users:
+   ```bash
+   export DOCKER_USERNAME=yourusername
+   ./build-and-push.sh
+   ```
+
+This will:
+- Build the image with version tag (e.g., `yourusername/deletarr:1.0.0`)
+- Tag the image as `latest`
+- Push both tags to Docker Hub
+
+### Automated Build (GitHub Actions)
+
+The project includes a GitHub Actions workflow that automatically builds and pushes the Docker image when:
+- A push is made to the main/master branch
+- A new tag is created (starting with 'v')
+- A pull request is opened against main/master
+
+To use the automated build:
+1. Fork this repository
+2. Add your Docker Hub credentials as GitHub repository secrets:
+   - `DOCKER_USERNAME`: Your Docker Hub username
+   - `DOCKER_PASSWORD`: Your Docker Hub access token
+3. Push to main/master or create a new tag
+
+The workflow will:
+- Build multi-architecture images (amd64, arm64)
+- Tag images based on:
+  - Git tags (v1.0.0 -> 1.0.0, 1.0)
+  - Branch name
+  - Git SHA
+- Push to Docker Hub (except for pull requests)
+
 ## How It Works
 
 1. Connects to qBittorrent and gets a list of completed torrents in configured Radarr/Sonarr categories
