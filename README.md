@@ -53,22 +53,6 @@ Sonarr:
   root_folder: "/path/to/tv"
 ```
 
-## Usage
-
-### Using Docker:
-
-```bash
-docker run -d \
-  --name=deletarr \
-  -v /path/to/your/config:/config \
-  --restart unless-stopped \
-  deletarr
-```
-
-### Environment Variables
-
-- `DELETARR_CONFIG`: Path to config file (default: `/config/config.yml`)
-
 ## Advanced Configuration
 
 ### Logging:
