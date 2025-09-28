@@ -8,6 +8,14 @@ import re
 import time
 from typing import List, Dict, Set
 
+# Read version for testing
+def get_version():
+    try:
+        with open('/app/version.txt', 'r') as f:
+            return f.read().strip()
+    except:
+        return "unknown"
+
 # --- Load configuration ---
 def load_config(config_path: str) -> dict:
     with open(config_path, 'r') as f:
@@ -157,6 +165,44 @@ def get_all_media_files_lower(root_folder):
                 media_files.add(f.lower())
     return media_files
 
+def has_hardlinks_to_folder(file_path, target_folder):
+    """Check if a file has hardlinks pointing to the target folder (e.g., Radarr/Sonarr media folder)."""
+    try:
+        if not os.path.exists(file_path):
+            logging.debug(f"File does not exist: {file_path}")
+            return False
+            
+        # Get file stats
+        stat_info = os.stat(file_path)
+        
+        # If hardlink count is 1, there are no additional hardlinks
+        if stat_info.st_nlink <= 1:
+            logging.debug(f"No hardlinks found for: {file_path}")
+            return False
+            
+        # Check if any hardlinks point to the target folder
+        inode = stat_info.st_ino
+        device = stat_info.st_dev
+        
+        # Walk through target folder looking for files with same inode
+        for root, dirs, files in os.walk(target_folder):
+            for file_name in files:
+                target_file = os.path.join(root, file_name)
+                try:
+                    target_stat = os.stat(target_file)
+                    if target_stat.st_ino == inode and target_stat.st_dev == device:
+                        logging.debug(f"Hardlink found: {file_path} -> {target_file}")
+                        return True
+                except (OSError, IOError):
+                    continue  # Skip files we can't access
+                    
+        logging.debug(f"Hardlinks exist but none point to target folder: {file_path}")
+        return False
+        
+    except (OSError, IOError) as e:
+        logging.warning(f"Error checking hardlinks for {file_path}: {e}")
+        return False
+
 def get_all_media_basenames(root_folder):
     """Recursively collect all media file basenames (without extension) in the given root_folder."""
     media_exts = {'.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.ts', '.m4v', '.mpg', '.mpeg'}
@@ -180,14 +226,7 @@ def normalize_torrent_name(name):
 def process_service(service_name, service_config, qbit, dry_run):
     root_folder = service_config['root_folder']
     category = service_config['category']
-    logging.info(f"[{service_name}] Scanning for media files in: {root_folder}")
-    for root, dirs, files in os.walk(root_folder):
-        logging.debug(f"[{service_name}] Walking directory: {root}")
-        for f in files:
-            logging.debug(f"[{service_name}]   Found file: {os.path.join(root, f)}")
-    all_media_files_lower = get_all_media_files_lower(root_folder)
-    logging.info(f"[{service_name}] Found {len(all_media_files_lower)} media files in root_folder {root_folder}")
-    logging.debug(f"[{service_name}] all_media_files_lower: {all_media_files_lower}")
+    logging.info(f"[{service_name}] Processing category '{category}' with hardlink detection to: {root_folder}")
 
     torrents = qbit.get_torrents([category])
     logging.debug(f"[{service_name}] Torrents in category '{category}':")
@@ -211,37 +250,54 @@ def process_service(service_name, service_config, qbit, dry_run):
             logging.warning(f"[{service_name}] Could not get files for torrent {torrent_hash}: {e}")
             return []
 
-    # --- Wait at least 10 minutes after completion before deleting ---
+    # --- Wait for minimum seeding time after completion before deleting ---
     now = int(time.time())
-    min_age_sec = 10 * 60  # 10 minutes
+    min_seed_days = service_config.get('min_seed_days', 30)  # Default 30 days
+    min_age_sec = min_seed_days * 24 * 60 * 60  # Convert days to seconds
+    logging.info(f"[{service_name}] Minimum seeding time: {min_seed_days} days ({min_age_sec} seconds)")
     
     torrents_to_delete = []
     torrents_to_delete_names = []
     for torrent in torrents:
         logging.debug(f"[{service_name}] Checking torrent: {torrent['name']} | Hash: {torrent['hash']} | Save Path: {torrent['save_path']}")
-        # Check completion time
+        # Check completion time - ensure minimum seeding period has passed
         completion_on = torrent.get('completion_on')
-        if completion_on is not None and now - int(completion_on) < min_age_sec:
-            logging.info(f"[{service_name}] Torrent '{torrent['name']}' ({torrent['hash']}) finished less than 10 minutes ago. Skipping deletion.")
+        if completion_on is not None:
+            days_since_completion = (now - int(completion_on)) / (24 * 60 * 60)
+            if now - int(completion_on) < min_age_sec:
+                logging.info(f"[{service_name}] Torrent '{torrent['name']}' ({torrent['hash']}) has only been seeding for {days_since_completion:.1f} days (minimum: {min_seed_days} days). Skipping deletion.")
+                continue
+            else:
+                logging.debug(f"[{service_name}] Torrent '{torrent['name']}' has been seeding for {days_since_completion:.1f} days - eligible for deletion check.")
+        else:
+            logging.warning(f"[{service_name}] Torrent '{torrent['name']}' ({torrent['hash']}) has no completion time. Skipping deletion for safety.")
             continue
         torrent_files = get_torrent_files(torrent['hash'])
         logging.debug(f"[{service_name}] Number of files for '{torrent['name']}': {len(torrent_files)}")
         if not torrent_files:
             logging.warning(f"[{service_name}] No file info for torrent '{torrent['name']}' ({torrent['hash']}). Skipping deletion check.")
             continue
-        all_missing = True
+            
+        # Check if ANY torrent files have hardlinks to the service's root folder
+        has_hardlinks = False
         for f in torrent_files:
-            file_name = os.path.basename(f['name']).lower()
-            if file_name in all_media_files_lower:
-                logging.debug(f"[{service_name}] File exists in media set: {file_name}")
-                all_missing = False
+            # Build full path to torrent file
+            torrent_file_path = os.path.join(torrent['save_path'], f['name'])
+            
+            # Check if this file has hardlinks to the service root folder
+            if has_hardlinks_to_folder(torrent_file_path, root_folder):
+                logging.info(f"[{service_name}] File '{f['name']}' has hardlinks to {root_folder}. Torrent '{torrent['name']}' will NOT be deleted.")
+                has_hardlinks = True
                 break
-        if all_missing:
+            else:
+                logging.debug(f"[{service_name}] File '{f['name']}' has no hardlinks to {root_folder}")
+        
+        if not has_hardlinks:
             torrents_to_delete.append(torrent['hash'])
             torrents_to_delete_names.append(torrent['name'])
-            logging.info(f"[{service_name}] All files missing for torrent '{torrent['name']}' ({torrent['hash']}). Marked for deletion via qBittorrent API.")
+            logging.info(f"[{service_name}] No hardlinks found for torrent '{torrent['name']}' ({torrent['hash']}). Marked for deletion.")
         else:
-            logging.debug(f"[{service_name}] At least one file exists for torrent '{torrent['name']}' ({torrent['hash']}). No action taken.")
+            logging.debug(f"[{service_name}] Torrent '{torrent['name']}' has hardlinks - keeping it.")
 
     # --- SAFETY CHECK: max_delete_percent ---
     max_delete_percent = service_config.get('max_delete_percent', None)
@@ -252,11 +308,18 @@ def process_service(service_name, service_config, qbit, dry_run):
             return
 
     if torrents_to_delete:
+        # Sort torrent names alphabetically for better readability
+        sorted_torrent_names = sorted(torrents_to_delete_names)
+        
         if dry_run:
-            logging.info(f"[{service_name}] Dry run: would delete {len(torrents_to_delete)} torrents and their content: {torrents_to_delete_names}")
+            logging.info(f"[{service_name}] Dry run: would delete {len(torrents_to_delete)} torrents and their content:")
+            for torrent_name in sorted_torrent_names:
+                logging.info(f"[{service_name}]   - {torrent_name}")
         else:
             qbit.delete_torrents(torrents_to_delete, delete_data=True)
-            logging.info(f"[{service_name}] Deleted {len(torrents_to_delete)} torrents and their content: {torrents_to_delete_names}")
+            logging.info(f"[{service_name}] Deleted {len(torrents_to_delete)} torrents and their content:")
+            for torrent_name in sorted_torrent_names:
+                logging.info(f"[{service_name}]   - {torrent_name}")
     else:
         logging.info(f"[{service_name}] No torrents to delete.")
 
@@ -272,15 +335,23 @@ def main():
     
     config = load_config(config_path)
     setup_logging(config['logging'])
+    version = get_version()
+    logging.info(f'Deletarr version: {version}')
     logging.info(f'Script started using config: {config_path}')
 
     qbit = QbitClient(config['qBittorrent'])
     dry_run = config.get('dry_run', True)
 
-    # Process both Radarr and Sonarr
+    # Process both Radarr and Sonarr (if enabled)
     for service_name in ['Radarr', 'Sonarr']:
         if service_name in config:
-            process_service(service_name, config[service_name], qbit, dry_run)
+            service_config = config[service_name]
+            # Check if service is enabled (default: true for backward compatibility)
+            if service_config.get('enabled', True):
+                logging.info(f'{service_name} is enabled - processing...')
+                process_service(service_name, service_config, qbit, dry_run)
+            else:
+                logging.info(f'{service_name} is disabled - skipping...')
 
 if __name__ == "__main__":
     main()

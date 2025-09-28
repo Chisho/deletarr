@@ -6,17 +6,21 @@ qBittorrent:
 
 # Radarr settings
 Radarr:
+  enabled: true  # Set to false to disable Radarr processing
   url: "YOUR_RADARR_USERNAME"
   api_key: "YOUR_RADARR_API_KEY"
   root_folder: "YOUR_RADARR_ROOT_FOLDER"
   category: "radarr"
+  min_seed_days: 30  # Minimum days to keep seeding after completion (default: 30)
 
 # Sonarr settings
 Sonarr:
+  enabled: true  # Set to false to disable Sonarr processing
   url: "YOUR_SONARR_USERNAME"
   api_key: "YOUR_SONARR_API_KEY"
   root_folder: "YOUR_SONARR_ROOT_FOLDER"
   category: "tv-sonarr"
+  min_seed_days: 30  # Minimum days to keep seeding after completion (default: 30)
 
 # Script options
 dry_run: false  # Set to false to enable actual deletion

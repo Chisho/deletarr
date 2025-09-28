@@ -25,9 +25,9 @@ COPY config_sample /config_sample
 
 # Do not copy config/config.yml; user must mount /config
 
-# Copy entrypoint script
+# Copy entrypoint script and fix line endings
 COPY entrypoint.sh /entrypoint.sh
-RUN chmod +x /entrypoint.sh
+RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Set up deletarr shell command
 RUN echo '#!/bin/sh\nexec python /app/deletarr.py "$@"' > /usr/local/bin/deletarr && chmod +x /usr/local/bin/deletarr
