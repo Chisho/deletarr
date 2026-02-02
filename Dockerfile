@@ -15,10 +15,10 @@ COPY version.txt /app/version.txt
 
 # Copy requirements if present
 COPY requirements.txt /app/requirements.txt
-RUN pip install --no-cache-dir -r /app/requirements.txt || true
+RUN pip install --no-cache-dir -r /app/requirements.txt
 
-# Copy main script
-COPY deletarr.py /app/deletarr.py
+# Copy package folder
+COPY deletarr /app/deletarr
 
 # Copy sample config (not used at runtime)
 COPY config_sample /config_sample
@@ -30,6 +30,6 @@ COPY entrypoint.sh /entrypoint.sh
 RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Set up deletarr shell command
-RUN echo '#!/bin/sh\nexec python /app/deletarr.py "$@"' > /usr/local/bin/deletarr && chmod +x /usr/local/bin/deletarr
+RUN echo '#!/bin/sh\nexec python -m deletarr.main "$@"' > /usr/local/bin/deletarr && chmod +x /usr/local/bin/deletarr
 
 ENTRYPOINT ["/entrypoint.sh"]
