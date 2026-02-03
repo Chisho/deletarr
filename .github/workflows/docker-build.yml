@@ -30,6 +30,7 @@ jobs:
           images: ${{ secrets.DOCKER_USERNAME }}/deletarr
           tags: |
             type=semver,pattern={{version}}
+            type=raw,value=latest,enable={{is_default_branch}}
 
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
