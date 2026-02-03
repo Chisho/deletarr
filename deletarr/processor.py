@@ -1,10 +1,15 @@
 import os
 import logging
 import time
-from .utils import has_hardlinks_to_folder
+from .utils import has_hardlinks_to_folder, normalize_path
+
 
 def process_service(service_name, service_config, qbit):
     root_folder = service_config['root_folder']
+    
+    # Root folder logic simplified (no mapping)
+    root_folder = service_config['root_folder']
+    
     category = service_config['category']
     logging.info(f"[{service_name}] Processing category '{category}' with hardlink detection to: {root_folder}")
 
@@ -37,6 +42,10 @@ def process_service(service_name, service_config, qbit):
         has_hardlinks = False
         for f in torrent_files:
             torrent_file_path = os.path.join(torrent['save_path'], f['name'])
+            
+            # Torrent file path (no mapping)
+            torrent_file_path = os.path.join(torrent['save_path'], f['name'])
+            
             if has_hardlinks_to_folder(torrent_file_path, root_folder):
                 logging.debug(f"[{service_name}] File '{f['name']}' has hardlinks to {root_folder}.")
                 has_hardlinks = True

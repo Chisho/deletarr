@@ -3,7 +3,7 @@ setlocal enabledelayedexpansion
 
 if "%DOCKER_USERNAME%"=="" (
     echo Error: DOCKER_USERNAME environment variable is not set
-    echo Usage: set DOCKER_USERNAME=yourusername ^& build-dev.bat
+    echo Usage: set DOCKER_USERNAME=yourusername ^& push-dev.bat
     exit /b 1
 )
 
@@ -12,15 +12,24 @@ for /f "tokens=1-4 delims=/ " %%i in ('date /t') do set mydate=%%i-%%j-%%k
 for /f "tokens=1-2 delims=: " %%i in ('time /t') do set mytime=%%i%%j
 set DEV_TAG=dev-%mydate%-%mytime%
 
-REM Build the image with dev tag
+echo --- GIT STEPS ---
+echo Staging changes...
+git add .
+
+echo Commiting changes...
+git commit -m "Dev push: %DEV_TAG%"
+
+echo Pushing to Git...
+git push
+
+echo --- DOCKER STEPS ---
 echo Building Docker image with dev tag: %DEV_TAG%...
 docker build -t %DOCKER_USERNAME%/deletarr:%DEV_TAG% .
 
-REM Push dev tag to Docker Hub
 echo Pushing dev tag %DEV_TAG% to Docker Hub...
 docker push %DOCKER_USERNAME%/deletarr:%DEV_TAG%
 
-echo Successfully built and pushed dev version: %DEV_TAG%
-echo.
-echo To use in TrueNAS Scale, update your app to use: %DOCKER_USERNAME%/deletarr:%DEV_TAG%
+echo --------------------------------------------------
+echo Successfully pushed to Git and Docker (Tag: %DEV_TAG%)
+echo --------------------------------------------------
 pause

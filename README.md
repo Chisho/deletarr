@@ -1,74 +1,51 @@
 # Deletarr
 
-This container sets up a cron scheduler that will automatically run `deletarr.py` at the scheduled interval. The script checks for missing media files in your Radarr/Sonarr libraries and deletes the corresponding qBittorrent data for these files. The qBittorrent search is category-based, so you must configure the appropriate categories in your `config.yml` file to match your Radarr/Sonarr download categories.
+Deletarr is a media management tool that helps you keep your download client clean by identifying and deleting torrents that no longer have corresponding media files in your Radarr or Sonarr libraries.
 
-## Quick Setup
+Unlike traditional scripts, Deletarr features a modern **Web UI** for management, monitoring, and manual triggers.
 
-1. Mount the `/config` directory with your configuration file when running the container.
-2. Mount your Radarr and Sonarr media library folders into the container, and update the `root_folder` paths in your `config.yml` to match these mount points.
-3. Copy `config_sample/config.yml.sample` to your config directory as `config.yml`.
-4. Edit the `config.yml` with your qBittorrent, Radarr, and Sonarr settings, including the correct category names and root folder paths.
+## Key Features
 
-**Example Docker run command:**
+- **Web Interface**: Easy setup and status monitoring.
+- **Hardlink Detection**: Safely identifies if a torrent is still being used for seeding via hardlinks.
+- **Dry Run Mode**: Preview deletions before they happen.
+- **Radarr & Sonarr Integration**: Works with both major media managers.
+- **qBittorrent Support**: Specifically designed for qBittorrent users.
+
+## Quick Setup (Docker)
+
+The easiest way to run Deletarr is via Docker.
+
+1. Create a directory for your configuration.
+2. Run the container:
 
 ```bash
-# Mount /config for configuration and your media folders for Radarr and Sonarr
-# Adjust /path/to/movies and /path/to/tv to your actual media locations
-
 docker run -d \
   --name=deletarr \
-  -v /path/to/your/config:/config \
-  -v /path/to/movies:/path/to/movies \
-  -v /path/to/tv:/path/to/tv \
+  -p 5000:5000 \
+  -v /path/to/config:/config \
+  -v /path/to/movies:/movies \
+  -v /path/to/tv:/tv \
   --restart unless-stopped \
-  deletarr
+  stefanc/deletarr:latest
 ```
+
+3. Access the Web UI at `http://localhost:5000`.
 
 ## Configuration
 
-The application requires a `config.yml` file in the mounted `/config` directory. You can use the provided sample at `config_sample/config.yml.sample` as a reference. The configuration file needs:
+All configuration is handled through the Web UI. Upon first run, you can set up your:
+- qBittorrent connection (URL, Username, Password)
+- Radarr/Sonarr API details and root folders
+- Safety limits (Max delete percentage, Min seed days)
 
-- qBittorrent connection details
-- Radarr/Sonarr API settings
-- Root folder paths for your media libraries
-- Category names that match your Radarr/Sonarr download categories in qBittorrent
+## Development and Pushing
 
-### Example Config Structure:
-```yaml
-qBittorrent:
-  url: "http://localhost:8080/"
-  username: "admin"
-  password: "adminpass"
+The project includes utility scripts for developers:
 
-Radarr:
-  url: "http://localhost:7878/"
-  api_key: "your-api-key"
-  category: "radarr"
-  root_folder: "/path/to/movies"
+- `./push-dev.sh`: Stages, commits, and pushes to Git, then builds and pushes a `dev` tagged Docker image.
+- `./push-release.sh`: Handles versioning, Git tagging, and pushes `latest` and versioned Docker images.
 
-Sonarr:
-  url: "http://localhost:8989/"
-  api_key: "your-api-key"
-  category: "tv-sonarr"
-  root_folder: "/path/to/tv"
-```
+## Disclaimer
 
-## Advanced Configuration
-
-### Logging:
-```yaml
-logging:
-  level: "INFO"  # Options: DEBUG, INFO, WARNING, ERROR
-  file: "deletarr.log"
-```
-
-### Safety Features:
-```yaml
-dry_run: true  # Set to false to enable actual deletion
-max_delete_percent: 30  # Abort if more than this percent would be deleted
-```
-
-### Schedule:
-```yaml
-schedule: "0 5 * * *"  # Runs at 5 AM daily
-```
+Use with caution. While Deletarr includes safety features like dry runs and hardlink detection, it is capable of deleting data. Always perform a dry run first when changing your configuration.

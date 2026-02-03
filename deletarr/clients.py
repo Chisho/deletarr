@@ -13,12 +13,13 @@ class QbitClient:
             username=cfg['username'],
             password=cfg['password']
         )
+    def test_connection(self):
         try:
-            self.client.auth_log_in()
-            logging.info("Logged in to qBittorrent")
+            # Check if we can get basic version info
+            version = self.client.app.version
+            return {"status": "ok", "version": version}
         except Exception as e:
-            logging.error(f"Failed to login to qBittorrent: {e}")
-            sys.exit(1)
+            return {"status": "error", "message": str(e)}
 
     def get_torrents(self, categories):
         try:
@@ -64,6 +65,17 @@ def radarr_get_movies(cfg):
         logging.error(f"Failed to fetch movies from Radarr: {e}")
         return set()
 
+def radarr_test_connection(cfg):
+    url = f"{cfg['url'].rstrip('/')}/api/v3/system/status"
+    headers = {"X-Api-Key": cfg['api_key']}
+    try:
+        resp = requests.get(url, headers=headers, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        return {"status": "ok", "version": data.get('version')}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}
+
 def sonarr_get_series(cfg):
     url = f"{cfg['url'].rstrip('/')}/api/v3/series"
     headers = {"X-Api-Key": cfg['api_key']}
@@ -77,3 +89,14 @@ def sonarr_get_series(cfg):
     except Exception as e:
         logging.error(f"Failed to fetch series from Sonarr: {e}")
         return set()
+
+def sonarr_test_connection(cfg):
+    url = f"{cfg['url'].rstrip('/')}/api/v3/system/status"
+    headers = {"X-Api-Key": cfg['api_key']}
+    try:
+        resp = requests.get(url, headers=headers, timeout=5)
+        resp.raise_for_status()
+        data = resp.json()
+        return {"status": "ok", "version": data.get('version')}
+    except Exception as e:
+        return {"status": "error", "message": str(e)}

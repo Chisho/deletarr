@@ -29,7 +29,6 @@ def has_hardlinks_to_folder(file_path, target_folder):
     """Check if a file has hardlinks pointing to the target folder (e.g., Radarr/Sonarr media folder)."""
     try:
         if not os.path.exists(file_path):
-            logging.debug(f"File does not exist: {file_path}")
             return False
             
         # Get file stats
@@ -37,7 +36,6 @@ def has_hardlinks_to_folder(file_path, target_folder):
         
         # If hardlink count is 1, there are no additional hardlinks
         if stat_info.st_nlink <= 1:
-            logging.debug(f"No hardlinks found for: {file_path}")
             return False
             
         # Check if any hardlinks point to the target folder
@@ -56,7 +54,10 @@ def has_hardlinks_to_folder(file_path, target_folder):
                 except (OSError, IOError):
                     continue  # Skip files we can't access
                     
-        logging.debug(f"Hardlinks exist but none point to target folder: {file_path}")
+        return False
+        
+    except (OSError, IOError) as e:
+        logging.warning(f"Error checking hardlinks for {file_path}: {e}")
         return False
         
     except (OSError, IOError) as e:
