@@ -41,7 +41,7 @@
 `run_deletarr()` is the entry point for both CLI and API runs:
 
 1. Resolves the config path: `$DELETARR_CONFIG` → `/config/config.yml` (Docker mount) → `./config/config.yml` (local).
-2. Loads YAML via [deletarr/config.py:load_config](deletarr/config.py#L6), sets up logging.
+2. Loads YAML via [deletarr/config.py:load_config](deletarr/config.py#L6) (raises `ConfigError` on failure — surfaces as `{"success": False, "error": ...}` rather than `sys.exit`), sets up logging.
 3. Constructs `QbitClient` from the `qBittorrent` section.
 4. For each enabled service (`Radarr`, `Sonarr`), calls [deletarr/processor.py:process_service](deletarr/processor.py#L7) which:
    - Aborts the service immediately if `root_folder` isn't a directory (e.g. unmounted) — without this, the hardlink walk would silently yield nothing and every torrent would become a candidate.
@@ -74,7 +74,7 @@ FastAPI app exposing:
 - `GET /api/logs` — last 200 log lines from an in-memory `ListHandler` attached to root + uvicorn loggers.
 - `GET /api/dry-run` — synchronously runs the pipeline with `dry_run=True` and returns the summary.
 - `POST /api/run` — synchronously runs the pipeline with `dry_run=False` and returns the summary.
-- Catch-all `GET /{full_path:path}` — serves the React SPA from `$FRONTEND_DIST` (defaults to `frontend/dist`) with SPA fallback to `index.html`.
+- Catch-all `GET /{full_path:path}` — serves the React SPA from `$FRONTEND_DIST` (defaults to `frontend/dist`) with SPA fallback to `index.html`. Unknown `/api/*` paths return 404 (not the SPA HTML), and the requested path is resolved with `realpath`+`commonpath` to block traversal outside the dist root.
 
 CORS is wide-open (`allow_origins=["*"]`) to support the Vite dev server hitting a separately-hosted backend during local development.
 
@@ -106,5 +106,5 @@ YAML schema, mirrored in [config_sample/config.yml.sample](config_sample/config.
 ### Deployment
 
 - **Docker** — two-stage build in [Dockerfile](Dockerfile): stage 1 builds the frontend with `node:20-alpine`, stage 2 copies the dist into `python:3.10-slim`, installs `requirements.txt`, and runs [entrypoint.sh](entrypoint.sh) → `uvicorn deletarr.api:app --host 0.0.0.0 --port 8000`. `ARG VERSION` is injected by CI from `version.txt` to set the `org.opencontainers.image.version` label. A `HEALTHCHECK` polls `/api/health` via the in-image Python.
-- **Distribution** — published as `stefanc/deletarr:{vX.Y.Z, X.Y, latest}` on Docker Hub by [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml). Multi-arch (`linux/amd64`, `linux/arm64`). The workflow publishes **only on `v*` tag pushes** — main-branch pushes build (sanity check) but don't push to Docker Hub, so dev commits never clobber `:latest`. GHA buildx cache (`type=gha`) is enabled for fast incremental rebuilds.
+- **Distribution** — published as `stefanc/deletarr:{vX.Y.Z, X.Y, latest}` on Docker Hub by [.github/workflows/docker-build.yml](.github/workflows/docker-build.yml). `linux/amd64` only — arm64 was dropped because the only deployment target is an x86_64 TrueNAS box and QEMU-emulated arm64 builds were taking 30+ min. The workflow publishes **only on `v*` tag pushes** — main-branch pushes build (sanity check) but don't push to Docker Hub, so dev commits never clobber `:latest`. GHA buildx cache (`type=gha`) is enabled for fast incremental rebuilds.
 - **Versioning** — single source of truth in [version.txt](version.txt), read at runtime by [deletarr/config.py:get_version](deletarr/config.py#L45) and at build time as `--build-arg VERSION=...`. [push-release.sh](push-release.sh) is purely a git helper (commit + tag + `git push --follow-tags`); Docker publishing happens entirely in CI.

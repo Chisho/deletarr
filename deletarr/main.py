@@ -1,7 +1,7 @@
 import os
 import logging
 import sys
-from .config import load_config, setup_logging, get_version
+from .config import load_config, setup_logging, get_version, ConfigError
 from .clients import QbitClient
 from .processor import process_service
 
@@ -44,18 +44,18 @@ def run_deletarr(config_path=None, dry_run=None):
             default_config = './config/config.yml'
             docker_config = '/config/config.yml'
             config_path = docker_config if os.path.exists(docker_config) else default_config
-    
-    # Load config each time to catch changes
-    config = load_config(config_path)
-    # If logging already setup, this might be redundant but harmless usually
-    # For a long running app, we set up logging once at startup, 
-    # but here we might need to ensure we capture it.
-    setup_logging(config['logging'])
-    
-    version = get_version()
-    logging.info(f'Deletarr version: {version}')
-    
+
     try:
+        # Load config each time to catch changes
+        config = load_config(config_path)
+        # If logging already setup, this might be redundant but harmless usually
+        # For a long running app, we set up logging once at startup,
+        # but here we might need to ensure we capture it.
+        setup_logging(config['logging'])
+
+        version = get_version()
+        logging.info(f'Deletarr version: {version}')
+
         qbit = QbitClient(config['qBittorrent'])
         
         # Allow override, otherwise use config
@@ -100,6 +100,14 @@ def run_deletarr(config_path=None, dry_run=None):
             "dry_run": dry_run,
             "deleted_count": len(deleted_hashes) if not dry_run else 0
         }
+    except ConfigError as e:
+        # Config not yet loaded so logging may not be configured — print plus best-effort log.
+        print(f"Deletarr: {e}")
+        logging.error(str(e))
+        return {
+            "success": False,
+            "error": str(e)
+        }
     except Exception as e:
         logging.error(f"Run failed: {e}")
         return {
@@ -110,6 +118,9 @@ def run_deletarr(config_path=None, dry_run=None):
 def main():
     # CLI entry point
     results = run_deletarr()
+    if not results.get('success'):
+        print(f"Deletarr run failed: {results.get('error', 'unknown error')}")
+        sys.exit(1)
     print_summary(results['summary'], results['dry_run'])
 
 if __name__ == "__main__":

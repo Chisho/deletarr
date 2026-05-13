@@ -32,7 +32,7 @@ docker run -d \
 
 3. Access the Web UI at `http://localhost:8000`.
 
-The image is multi-arch (`linux/amd64`, `linux/arm64`) — pulling `:latest` will resolve to the right architecture automatically.
+The image is built for `linux/amd64` (standard x86_64 hardware).
 
 ## TrueNAS SCALE Setup
 

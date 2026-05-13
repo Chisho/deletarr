@@ -25,33 +25,9 @@ Entries are grouped by **type**:
 
 ## BUG
 
-### BUG-4 [High] — qBit `get_torrents` returns `[]` on error; failed run looks identical to "nothing to do"
-**Action:** In [deletarr/clients.py:24-43](deletarr/clients.py#L24-L43), raise on connection / auth failure instead of returning `[]`. In [deletarr/main.py](deletarr/main.py), catch and abort the run with `success: False` and a clear error.
-**Why:** Today an unreachable qBittorrent silently produces a "0 candidates" run that looks healthy.
+_No open bugs._
 
-### BUG-9 [Medium] — `DryRun.jsx` crashes when a service is disabled
-**Action:** In [frontend/src/pages/DryRun.jsx:143](frontend/src/pages/DryRun.jsx#L143) and any other reads of `results.summary.Radarr` / `results.summary.Sonarr`, use optional chaining (`results.summary.Sonarr?.length ?? 0`).
-**Why:** Disabled services are absent from the backend summary, so the page throws on render.
-
-### BUG-10 [Medium] — `progress == 1.0` float-equality filter is fragile
-**Action:** In [deletarr/clients.py:37](deletarr/clients.py#L37), replace the Python-side `progress == 1.0` filter with `status_filter='completed'` passed directly to `torrents_info()`.
-**Why:** Float equality on `progress` can drop legitimately-completed torrents reported as `0.9999...`.
-
-### BUG-11 [Medium] — SPA catch-all returns 200 for `/api/...` typos and is path-traversable
-**Action:** In [deletarr/api.py:179-188](deletarr/api.py#L179-L188):
-- If `full_path.startswith("api/")`, raise `HTTPException(404)` so unknown API routes don't return `index.html`.
-- Resolve the requested path with `os.path.realpath` and verify it stays under `FRONTEND_DIST` via `os.path.commonpath` before serving.
-**Why:** Today `GET /api/whatever` quietly returns the SPA HTML; and the unguarded `FileResponse(os.path.join(...))` allows directory traversal.
-
-### BUG-12 [Medium] — `load_config` calls `sys.exit(1)` from a library function
-**Action:** In [deletarr/config.py:12](deletarr/config.py#L12), raise a `ConfigError` (define if needed) instead of `sys.exit`. CLI entrypoint in `main.py` catches and exits; API handlers in `api.py` return 500 with the message.
-**Why:** `sys.exit` inside a FastAPI handler aborts the worker process.
-
-### BUG-13 [Low] — `Settings.jsx` mutates a shallow-cloned config object
-**Action:** In [frontend/src/pages/Settings.jsx:71-80](frontend/src/pages/Settings.jsx#L71), replace the shallow spread + walk with `structuredClone(config)` before mutating the path.
-**Why:** Saves work today because of the top-level reference swap, but this is a latent footgun the next time anyone touches state shape.
-
-**Tally:** 6
+**Tally:** 0
 
 ## TASK
 

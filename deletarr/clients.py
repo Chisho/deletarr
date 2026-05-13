@@ -22,25 +22,24 @@ class QbitClient:
             return {"status": "error", "message": str(e)}
 
     def get_torrents(self, categories):
-        try:
-            torrents = self.client.torrents_info()
-            filtered = [
-                {
-                    'hash': t.hash,
-                    'name': t.name,
-                    'category': t.category,
-                    'save_path': t.save_path,
-                    'completion_on': getattr(t, 'completion_on', None),
-                    'progress': getattr(t, 'progress', 0)
-                }
-                for t in torrents
-                if t.category in categories and getattr(t, 'progress', 0) == 1.0
-            ]
-            logging.info(f"Fetched {len(filtered)} torrents for categories {categories} (fully downloaded)")
-            return filtered
-        except Exception as e:
-            logging.error(f"Failed to fetch torrents: {e}")
-            return []
+        # Filter completion on the server (status_filter='completed') so we don't rely on
+        # float-equality against t.progress. Category is filtered in Python because
+        # torrents_info() accepts a single category, not a list.
+        torrents = self.client.torrents_info(status_filter='completed')
+        filtered = [
+            {
+                'hash': t.hash,
+                'name': t.name,
+                'category': t.category,
+                'save_path': t.save_path,
+                'completion_on': getattr(t, 'completion_on', None),
+                'progress': getattr(t, 'progress', 0)
+            }
+            for t in torrents
+            if t.category in categories
+        ]
+        logging.info(f"Fetched {len(filtered)} torrents for categories {categories} (completed)")
+        return filtered
 
     def delete_torrents(self, hashes, delete_data=True):
         """Delete torrents one at a time. Returns the list of hashes that were actually deleted

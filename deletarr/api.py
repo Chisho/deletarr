@@ -173,16 +173,25 @@ FRONTEND_DIST = os.environ.get("FRONTEND_DIST", os.path.join(os.getcwd(), "front
 
 if os.path.exists(FRONTEND_DIST):
     app.mount("/assets", StaticFiles(directory=os.path.join(FRONTEND_DIST, "assets")), name="assets")
+    FRONTEND_DIST_REAL = os.path.realpath(FRONTEND_DIST)
+    INDEX_HTML = os.path.join(FRONTEND_DIST_REAL, "index.html")
 
     @app.get("/{full_path:path}")
     async def serve_react_app(full_path: str):
-        # API routes are already handled above because they are defined first
-        # Check if file exists in dist (e.g. favicon.ico, manifestation.json)
-        file_path = os.path.join(FRONTEND_DIST, full_path)
-        if os.path.exists(file_path) and os.path.isfile(file_path):
-             return FileResponse(file_path)
-        
-        # Otherwise return index.html for SPA routing
-        return FileResponse(os.path.join(FRONTEND_DIST, "index.html"))
+        # Unknown /api/* routes must 404 rather than silently returning the SPA HTML.
+        if full_path.startswith("api/"):
+            raise HTTPException(status_code=404, detail="Not Found")
+
+        # Resolve the requested path and verify it stays inside the dist root
+        # before serving. Blocks traversal via ../ or symlink jumps.
+        requested = os.path.realpath(os.path.join(FRONTEND_DIST_REAL, full_path))
+        if (
+            os.path.commonpath([requested, FRONTEND_DIST_REAL]) == FRONTEND_DIST_REAL
+            and os.path.isfile(requested)
+        ):
+            return FileResponse(requested)
+
+        # SPA fallback: always the fixed index.html, never an attacker-controlled path.
+        return FileResponse(INDEX_HTML)
 else:
     logging.warning(f"Frontend dist not found at {FRONTEND_DIST}. Web UI will not be available.")

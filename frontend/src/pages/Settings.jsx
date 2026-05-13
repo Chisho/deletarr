@@ -69,7 +69,7 @@ export default function Settings() {
     }
 
     const updateField = (path, value) => {
-        const newConfig = { ...editedConfig }
+        const newConfig = structuredClone(editedConfig)
         const keys = path.split('.')
         let current = newConfig
         for (let i = 0; i < keys.length - 1; i++) {

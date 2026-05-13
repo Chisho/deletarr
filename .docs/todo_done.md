@@ -37,6 +37,24 @@ Only DONE items. For open tasks, see `.docs/todo.md`.
 ### BUG-8 [High] — Hardcoded `version` label in Dockerfile drifts from version.txt
 **Done:** [Dockerfile](Dockerfile) replaced the literal `LABEL version="1.3.0"` with `ARG VERSION=unknown` + `LABEL org.opencontainers.image.version="${VERSION}"` (OCI-standard key). CI reads `version.txt` and passes it as `--build-arg VERSION=...` to `docker/build-push-action`. Also swapped the other ad-hoc labels to OCI-standard keys (`org.opencontainers.image.description`, `org.opencontainers.image.source`).
 
+### BUG-4 [High] — qBit `get_torrents` returns `[]` on error; failed run looks identical to "nothing to do"
+**Done:** [deletarr/clients.py](deletarr/clients.py) — removed the `try/except` that swallowed errors and returned `[]`. `get_torrents` now lets exceptions propagate. The existing top-level handler in [deletarr/main.py](deletarr/main.py) catches them and returns `{"success": False, "error": ...}`, so an unreachable qBittorrent is now surfaced as a clear failure instead of "0 candidates".
+
+### BUG-9 [Medium] — `DryRun.jsx` crashes when a service is disabled
+**Done:** [frontend/src/pages/DryRun.jsx](frontend/src/pages/DryRun.jsx) — added optional chaining to the `hasDeletions` derivation so `results.summary.Sonarr?.length` and `results.summary.Radarr?.length` no longer throw when a service is absent from the summary. (Render path was already safe via `renderServiceCol`'s null handling.)
+
+### BUG-10 [Medium] — `progress == 1.0` float-equality filter is fragile
+**Done:** [deletarr/clients.py](deletarr/clients.py) — `get_torrents` now calls `torrents_info(status_filter='completed')` and drops the Python-side `progress == 1.0` comparison. qBittorrent filters completion status server-side; we still filter category in Python because `torrents_info()` accepts only a single category at a time.
+
+### BUG-11 [Medium] — SPA catch-all returns 200 for `/api/...` typos and is path-traversable
+**Done:** [deletarr/api.py](deletarr/api.py) — the catch-all now (a) raises `HTTPException(404)` when `full_path` begins with `api/`, so unknown API routes 404 instead of silently returning the SPA HTML, and (b) resolves the requested path with `os.path.realpath` and checks `os.path.commonpath` against the dist root before serving, so traversal attempts (`/../../etc/passwd`, raw or URL-encoded) safely fall back to `index.html`. Verified live with curl.
+
+### BUG-12 [Medium] — `load_config` calls `sys.exit(1)` from a library function
+**Done:** [deletarr/config.py](deletarr/config.py) — added `class ConfigError(Exception)` and replaced `sys.exit(1)` with `raise ConfigError(...) from e`. [deletarr/main.py](deletarr/main.py) — moved `load_config` + `setup_logging` inside the top-level `try` block, catches `ConfigError` separately for a clean print + return, and `main()` now checks `results.get('success')` before accessing `results['summary']` (it would `KeyError` on any failure before). API handlers already catch all `Exception` and return 500 — no change needed there.
+
+### BUG-13 [Low] — `Settings.jsx` mutates a shallow-cloned config object
+**Done:** [frontend/src/pages/Settings.jsx](frontend/src/pages/Settings.jsx) — `updateField` now uses `structuredClone(editedConfig)` instead of `{...editedConfig}` + nested walk, so nested objects are properly copied before mutation.
+
 ## CR
 
 _No completed change requests yet._

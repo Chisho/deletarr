@@ -3,13 +3,18 @@ import logging
 import sys
 import os
 
+
+class ConfigError(Exception):
+    """Raised when config can't be loaded or parsed.
+    Caller decides how to surface this (CLI prints + exits, API returns 500)."""
+
+
 def load_config(config_path: str) -> dict:
     try:
         with open(config_path, 'r') as f:
             return yaml.safe_load(f)
     except Exception as e:
-        print(f"Error loading config at {config_path}: {e}")
-        sys.exit(1)
+        raise ConfigError(f"Error loading config at {config_path}: {e}") from e
 
 def setup_logging(log_config: dict):
     level_str = log_config.get('level', 'INFO').upper()

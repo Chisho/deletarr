@@ -140,7 +140,7 @@ export default function DryRun() {
     }
 
     const isGlobalDryRun = config?.dry_run
-    const hasDeletions = results?.deleted_count > 0 || (results?.summary && (results.summary.Sonarr.length > 0 || results.summary.Radarr.length > 0))
+    const hasDeletions = results?.deleted_count > 0 || (results?.summary && (results.summary.Sonarr?.length > 0 || results.summary.Radarr?.length > 0))
 
     return (
         <div className="space-y-8 animate-in fade-in duration-500">
