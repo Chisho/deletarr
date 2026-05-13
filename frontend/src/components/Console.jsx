@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useRef } from 'react'
-import { Terminal, ChevronUp, ChevronDown, Minimize2, Maximize2 } from 'lucide-react'
+import { Terminal, ChevronUp, ChevronDown } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 
 export default function Console() {

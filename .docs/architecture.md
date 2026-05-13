@@ -76,7 +76,9 @@ FastAPI app exposing:
 - `POST /api/run` — synchronously runs the pipeline with `dry_run=False` and returns the summary.
 - Catch-all `GET /{full_path:path}` — serves the React SPA from `$FRONTEND_DIST` (defaults to `frontend/dist`) with SPA fallback to `index.html`. Unknown `/api/*` paths return 404 (not the SPA HTML), and the requested path is resolved with `realpath`+`commonpath` to block traversal outside the dist root.
 
-CORS is wide-open (`allow_origins=["*"]`) to support the Vite dev server hitting a separately-hosted backend during local development.
+CORS is locked to specific origins. Defaults: `http://localhost:5173`, `http://127.0.0.1:5173` (Vite dev). Add more via `DELETARR_ALLOWED_ORIGINS` (comma-separated env var). In production the SPA is served same-origin from FastAPI, so CORS never fires there.
+
+`/api/dry-run` and `/api/run` share a module-level `threading.Lock` — only one run (dry or real) at a time. Concurrent calls receive HTTP 409. This prevents two threadpool handlers from both walking hardlinks and both calling `qbit.delete_torrents`.
 
 The app is single-process and synchronous — there is no background scheduler in code; "scheduled" runs are handled externally (e.g. cron in a container that calls the API, or manual triggers from the UI).
 

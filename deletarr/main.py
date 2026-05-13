@@ -76,6 +76,9 @@ def run_deletarr(config_path=None, dry_run=None):
                 else:
                     logging.info(f'[{service_name}] Service is disabled. Skipping.')
 
+        summary_parts = [f"{svc} {len(items)} candidate(s)" for svc, items in deletions_map.items()]
+        logging.info("Run summary: " + (", ".join(summary_parts) if summary_parts else "no services processed"))
+
         # Perform actual deletions if not dry run
         deleted_hashes = []
         if not dry_run:

@@ -31,36 +31,12 @@ _No open bugs._
 
 ## TASK
 
-### TASK-3 [High] — Add a concurrency lock and CSRF gate to `/api/run`
-**Action:** In [deletarr/api.py:143-165](deletarr/api.py#L143-L165):
-- Wrap `run_deletarr` calls in a module-level `threading.Lock` (or `asyncio.Lock` if the handler becomes async); return HTTP 409 if busy.
-- Require the client to echo a token returned by the prior `/api/dry-run` response.
-- Tighten the CORS config at [deletarr/api.py:43-49](deletarr/api.py#L43-L49) — pin `allow_origins` to known dev origins; `allow_origins=["*"]` + `allow_credentials=True` is browser-rejected anyway.
-**Why:** Today an unauthenticated POST from any origin on the LAN can trigger a destructive run, and two concurrent calls double-delete via the threadpool.
-
 ### TASK-4 [Medium] — Replace `window.confirm` with a typed-confirmation modal for real delete
 **Action:** In [frontend/src/pages/DryRun.jsx:41](frontend/src/pages/DryRun.jsx#L41), replace the native confirm with a modal that:
 - Shows per-service counts and total reclaimable size.
 - Requires the user to type `DELETE N ITEMS` to enable the confirm button.
 - Differentiates clearly from the dry-run path.
 **Why:** A single native confirm is the only gate before destructive work.
-
-### TASK-5 [Medium] — Remove dead code
-**Action:** Delete (or wire in if intentional) the following per the "no dead code" rule:
-- [deletarr/clients.py:54-91](deletarr/clients.py#L54-L91) `radarr_get_movies`, `sonarr_get_series`.
-- [deletarr/utils.py:8-26](deletarr/utils.py#L8-L26) unused media-file helpers and `normalize_path`.
-- [deletarr/utils.py:63-65](deletarr/utils.py#L63-L65) unreachable second `except` block.
-- [deletarr/api.py:61-67](deletarr/api.py#L61-L67) empty deprecated `@app.on_event` handlers.
-- [frontend/src/components/Console.jsx:2](frontend/src/components/Console.jsx#L2) unused `Minimize2`/`Maximize2` imports.
-- `axios` in [frontend/package.json](frontend/package.json) (codebase uses `fetch` everywhere).
-- [deletarr/processor.py:8-11](deletarr/processor.py#L8-L11) and [:44-47](deletarr/processor.py#L44-L47) duplicate variable assignments.
-
-### TASK-6 [Medium] — Per-torrent decision logging at INFO level
-**Action:** In [deletarr/processor.py](deletarr/processor.py), after each decision, log one structured line:
-- `[Radarr] KEEP 'name' (3/12 files hardlinked)`
-- `[Radarr] SKIP 'name' (seeding 4.2d < 30d)`
-- `[Radarr] CANDIDATE 'name' (0 hardlinks)`
-**Why:** Today the only way to answer "why was this torrent kept?" is to re-run at DEBUG.
 
 ### TASK-7 [Medium] — Hoist `Field` component out of `Settings.jsx` render body
 **Action:** Move the `Field` definition at [frontend/src/pages/Settings.jsx:132](frontend/src/pages/Settings.jsx#L132) above the parent component, outside its render scope.
@@ -76,7 +52,7 @@ _No open bugs._
 ### TASK-9 [Low] — Add `aria-current="page"` to sidebar nav items
 **Action:** In [frontend/src/layout/Layout.jsx](frontend/src/layout/Layout.jsx), pass `aria-current="page"` on the active `SidebarItem`.
 
-**Tally:** 7
+**Tally:** 4
 
 ## CR
 

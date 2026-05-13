@@ -37,7 +37,7 @@ The image is built for `linux/amd64` (standard x86_64 hardware).
 ## TrueNAS SCALE Setup
 
 When installing as a "Custom App" in TrueNAS SCALE:
-1. **Image**: `stefanc/deletarr:latest` (or pin a specific version like `:v1.3.0` if you don't want automatic updates).
+1. **Image**: `stefanc/deletarr:latest` (or pin to a specific tag — see [Docker Hub](https://hub.docker.com/r/stefanc/deletarr/tags) — if you don't want updates on every release).
 2. Under **Networking**, map Container Port `8000` to a Node Port (e.g., `30080`).
 3. Under **Web UI**, enter that same Node Port to enable the "WebUI" button in the Apps dashboard.
 

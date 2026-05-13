@@ -12,6 +12,21 @@ Only DONE items. For open tasks, see `.docs/todo.md`.
 ### TASK-2 [High] — Add HEALTHCHECK to the Docker image
 **Done:** [Dockerfile](Dockerfile) now includes a `HEALTHCHECK` that polls `/api/health` via `python -c "import urllib.request; urllib.request.urlopen(...)"` — using the in-image Python rather than installing curl. Interval 30s, timeout 5s, start-period 15s, 3 retries.
 
+### TASK-3 [High] — Concurrency lock + tightened CORS on `/api/run` and `/api/dry-run`
+**Done:** [deletarr/api.py](deletarr/api.py) — added a module-level `threading.Lock`; both `/api/dry-run` and `/api/run` now `acquire(blocking=False)` and return HTTP 409 `"Another run is already in progress"` if busy, with release in `finally`. CORS: replaced `allow_origins=["*"]` with a pinned list — defaults to `http://localhost:5173` + `http://127.0.0.1:5173` (Vite dev), extendable via `DELETARR_ALLOWED_ORIGINS` env var (comma-separated). Production same-origin SPA is unaffected (CORS doesn't fire). Verified live: concurrent dry-run gets `200 / 409`, allowed origin echoes back in preflight, disallowed origin does not. (CSRF token gate deferred — CORS tightening already covers the main cross-origin attack vector.)
+
+### TASK-5 [Medium] — Remove dead code
+**Done:** Cleared all the listed items:
+- [deletarr/clients.py](deletarr/clients.py) — deleted `radarr_get_movies`, `sonarr_get_series`; removed unused `import sys` and `from .utils import normalize_path`.
+- [deletarr/utils.py](deletarr/utils.py) — deleted `folder_has_media_files`, `get_all_media_files`, `normalize_path`.
+- [deletarr/api.py](deletarr/api.py) — deleted the empty deprecated `@app.on_event("startup")` / `@app.on_event("shutdown")` handlers; also removed the unused `from threading import Thread` import.
+- [deletarr/processor.py](deletarr/processor.py) — removed duplicate variable assignments (`root_folder` and `torrent_file_path` each set twice).
+- [frontend/src/components/Console.jsx](frontend/src/components/Console.jsx) — removed unused `Minimize2, Maximize2` imports.
+- [frontend/package.json](frontend/package.json) — removed `axios` dependency (codebase uses `fetch` throughout).
+
+### TASK-6 [Medium] — Per-torrent decision logging at INFO level
+**Done:** [deletarr/processor.py](deletarr/processor.py) — every decision now emits one structured INFO line per torrent: `SKIP '<name>' (seeding 4.2d < 30d min)`, `SKIP '<name>' (no completion time)`, `SKIP '<name>' (file list unavailable: ...)`, `KEEP '<name>' (hardlinked, 12.3d seeded)`, `KEEP '<name>' (hardlink check inconclusive: ...)`, `CANDIDATE '<name>' (no hardlinks, 12.3d seeded)`, and on abort `ABORT (would delete N/M = X% > max_delete_percent Y%)`. Per-service summary `Run summary: Radarr X candidate(s), Sonarr Y candidate(s)` added in [deletarr/main.py](deletarr/main.py). Answers "why was this torrent kept?" from the INFO log alone — no DEBUG re-run needed.
+
 ## BUG
 
 ### BUG-1 [High] — `max_delete_percent` saved/read in two different places (safety check disabled)

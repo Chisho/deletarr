@@ -7,30 +7,6 @@ class HardlinkCheckError(Exception):
     Callers must treat this as 'unknown' and keep the torrent."""
 
 
-def normalize_path(path):
-    # Lowercase, remove trailing slashes, normalize separators
-    return os.path.normpath(path).lower().rstrip('\\/')
-
-def folder_has_media_files(folder_path):
-    media_exts = {'.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.ts', '.m4v', '.mpg', '.mpeg'}
-    if not os.path.isdir(folder_path):
-        return False
-    for root, dirs, files in os.walk(folder_path):
-        for f in files:
-            if os.path.splitext(f)[1].lower() in media_exts:
-                return True
-    return False
-
-def get_all_media_files(root_folder):
-    """Recursively collect all media file names in the given root_folder."""
-    media_exts = {'.mkv', '.mp4', '.avi', '.mov', '.wmv', '.flv', '.ts', '.m4v', '.mpg', '.mpeg'}
-    media_files = set()
-    for dirpath, _, files in os.walk(root_folder):
-        for f in files:
-            if os.path.splitext(f)[1].lower() in media_exts:
-                media_files.add(f)
-    return media_files
-
 def has_hardlinks_to_folder(file_path, target_folder):
     """Check if a file has hardlinks pointing to the target folder (e.g., Radarr/Sonarr media folder).
 

@@ -1,9 +1,8 @@
 import qbittorrentapi
 import requests
 import logging
-import sys
 import time
-from .utils import normalize_path
+
 
 class QbitClient:
     def __init__(self, cfg):
@@ -13,9 +12,9 @@ class QbitClient:
             username=cfg['username'],
             password=cfg['password']
         )
+
     def test_connection(self):
         try:
-            # Check if we can get basic version info
             version = self.client.app.version
             return {"status": "ok", "version": version}
         except Exception as e:
@@ -55,19 +54,6 @@ class QbitClient:
             time.sleep(0.2)  # avoid hammering API
         return deleted
 
-def radarr_get_movies(cfg):
-    url = f"{cfg['url'].rstrip('/')}/api/v3/movie"
-    headers = {"X-Api-Key": cfg['api_key']}
-    try:
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        movies = resp.json()
-        movie_paths = set(normalize_path(m['path']) for m in movies)
-        logging.info(f"Fetched {len(movie_paths)} movies from Radarr")
-        return movie_paths
-    except Exception as e:
-        logging.error(f"Failed to fetch movies from Radarr: {e}")
-        return set()
 
 def radarr_test_connection(cfg):
     url = f"{cfg['url'].rstrip('/')}/api/v3/system/status"
@@ -80,19 +66,6 @@ def radarr_test_connection(cfg):
     except Exception as e:
         return {"status": "error", "message": str(e)}
 
-def sonarr_get_series(cfg):
-    url = f"{cfg['url'].rstrip('/')}/api/v3/series"
-    headers = {"X-Api-Key": cfg['api_key']}
-    try:
-        resp = requests.get(url, headers=headers, timeout=10)
-        resp.raise_for_status()
-        series = resp.json()
-        series_paths = set(normalize_path(s['path']) for s in series)
-        logging.info(f"Fetched {len(series_paths)} series from Sonarr")
-        return series_paths
-    except Exception as e:
-        logging.error(f"Failed to fetch series from Sonarr: {e}")
-        return set()
 
 def sonarr_test_connection(cfg):
     url = f"{cfg['url'].rstrip('/')}/api/v3/system/status"
