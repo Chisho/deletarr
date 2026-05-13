@@ -82,15 +82,18 @@ def run_deletarr(config_path=None, dry_run=None):
             all_hashes = []
             for torrents in deletions_map.values():
                 all_hashes.extend([t['hash'] for t in torrents])
-            
+
             if all_hashes:
                 logging.info(f"Performing actual deletion of {len(all_hashes)} torrents...")
-                qbit.delete_torrents(all_hashes, delete_data=True)
-                logging.info("Deletions completed.")
-                deleted_hashes = all_hashes
+                deleted_hashes = qbit.delete_torrents(all_hashes, delete_data=True)
+                failed = len(all_hashes) - len(deleted_hashes)
+                if failed:
+                    logging.warning(f"Deletions completed: {len(deleted_hashes)} succeeded, {failed} failed.")
+                else:
+                    logging.info(f"Deletions completed: {len(deleted_hashes)} succeeded.")
             else:
                 logging.info("No deletions to perform.")
-                
+
         return {
             "success": True,
             "summary": deletions_map,

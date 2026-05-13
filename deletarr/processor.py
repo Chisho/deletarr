@@ -1,17 +1,23 @@
 import os
 import logging
 import time
-from .utils import has_hardlinks_to_folder, normalize_path
+from .utils import has_hardlinks_to_folder, normalize_path, HardlinkCheckError
 
 
 def process_service(service_name, service_config, qbit):
     root_folder = service_config['root_folder']
-    
+
     # Root folder logic simplified (no mapping)
     root_folder = service_config['root_folder']
-    
+
     category = service_config['category']
     logging.info(f"[{service_name}] Processing category '{category}' with hardlink detection to: {root_folder}")
+
+    # Fail loud and skip the service if the library folder isn't mounted/accessible.
+    # Without this every torrent would look 'unhardlinked' and become a delete candidate.
+    if not os.path.isdir(root_folder):
+        logging.error(f"[{service_name}] root_folder '{root_folder}' does not exist or is not a directory. Skipping service.")
+        return []
 
     torrents = qbit.get_torrents([category])
     
@@ -42,15 +48,21 @@ def process_service(service_name, service_config, qbit):
         has_hardlinks = False
         for f in torrent_files:
             torrent_file_path = os.path.join(torrent['save_path'], f['name'])
-            
+
             # Torrent file path (no mapping)
             torrent_file_path = os.path.join(torrent['save_path'], f['name'])
-            
-            if has_hardlinks_to_folder(torrent_file_path, root_folder):
-                logging.debug(f"[{service_name}] File '{f['name']}' has hardlinks to {root_folder}.")
+
+            try:
+                if has_hardlinks_to_folder(torrent_file_path, root_folder):
+                    logging.debug(f"[{service_name}] File '{f['name']}' has hardlinks to {root_folder}.")
+                    has_hardlinks = True
+                    break
+            except HardlinkCheckError as e:
+                # Uncertainty must fail safe — keep the torrent rather than risk deleting a still-linked file.
+                logging.warning(f"[{service_name}] Hardlink check inconclusive for '{torrent['name']}' ({e}). Keeping torrent.")
                 has_hardlinks = True
                 break
-        
+
         if not has_hardlinks:
             service_torrents_to_delete.append(torrent)
             logging.debug(f"[{service_name}] No hardlinks found for '{torrent['name']}'. Marked for deletion.")

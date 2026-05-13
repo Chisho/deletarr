@@ -10,9 +10,11 @@ RUN npm run build
 # --- Stage 2: Final Image ---
 FROM python:3.10-slim
 
-LABEL version="1.3.0"
-LABEL description="Automatically clean up torrents from qBittorrent that are no longer in Radarr/Sonarr"
-LABEL maintainer="Your Name <your.email@example.com>"
+ARG VERSION=unknown
+
+LABEL org.opencontainers.image.version="${VERSION}"
+LABEL org.opencontainers.image.description="Automatically clean up torrents from qBittorrent that are no longer in Radarr/Sonarr"
+LABEL org.opencontainers.image.source="https://github.com/Chisho/deletarr"
 
 WORKDIR /app
 
@@ -44,6 +46,10 @@ RUN sed -i 's/\r$//' /entrypoint.sh && chmod +x /entrypoint.sh
 
 # Expose Web UI port
 EXPOSE 8000
+
+# Healthcheck — hits /api/health. Uses python (already in the image) so we don't need to install curl.
+HEALTHCHECK --interval=30s --timeout=5s --start-period=15s --retries=3 \
+  CMD python -c "import urllib.request; urllib.request.urlopen('http://localhost:8000/api/health', timeout=3).read()" || exit 1
 
 # We replace the old shell command with the entrypoint script handling
 # But we should update entrypoint.sh to start uvicorn

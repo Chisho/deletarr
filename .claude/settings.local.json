@@ -1,0 +1,12 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(*)",
+      "Grep(*)",
+      "mcp__chrome-devtools__*",
+      "mcp__shadcn__*",
+      "mcp__stripe__*"
+    ]
+  },
+  "autoMemoryEnabled": true
+}

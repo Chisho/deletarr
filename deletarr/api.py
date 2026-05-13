@@ -5,7 +5,7 @@ import logging
 import os
 import yaml
 from .main import run_deletarr
-from .config import load_config
+from .config import load_config, get_version
 from .clients import QbitClient, radarr_test_connection, sonarr_test_connection
 
 # In-memory log buffer
@@ -37,7 +37,7 @@ logging.getLogger().addHandler(capture_handler)
 # Attach to uvicorn logger as well to capture access logs
 logging.getLogger("uvicorn").addHandler(capture_handler)
 
-app = FastAPI(title="Deletarr API", version="1.3.0")
+app = FastAPI(title="Deletarr API", version=get_version())
 
 # Enable CORS for development
 app.add_middleware(
@@ -47,8 +47,6 @@ app.add_middleware(
     allow_methods=["*"],
     allow_headers=["*"],
 )
-
-app = FastAPI(title="Deletarr API", version="1.3.0")
 
 def get_config_path():
     config_path = os.environ.get('DELETARR_CONFIG')
@@ -69,8 +67,8 @@ def shutdown_event():
 @app.get("/api/health")
 def health():
     return {
-        "status": "ok", 
-        "version": "1.3.0",
+        "status": "ok",
+        "version": get_version(),
         "env": os.environ.get('DELETARR_ENV')
     }
 

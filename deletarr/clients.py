@@ -43,13 +43,18 @@ class QbitClient:
             return []
 
     def delete_torrents(self, hashes, delete_data=True):
-        try:
-            for h in hashes:
+        """Delete torrents one at a time. Returns the list of hashes that were actually deleted
+        (a transient failure on one hash must not be reported as success for all)."""
+        deleted = []
+        for h in hashes:
+            try:
                 self.client.torrents_delete(delete_files=delete_data, torrent_hashes=h)
+                deleted.append(h)
                 logging.info(f"Deleted torrent {h} (delete_data={delete_data})")
-                time.sleep(0.2)  # avoid hammering API
-        except Exception as e:
-            logging.error(f"Failed to delete torrents: {e}")
+            except Exception as e:
+                logging.error(f"Failed to delete torrent {h}: {e}")
+            time.sleep(0.2)  # avoid hammering API
+        return deleted
 
 def radarr_get_movies(cfg):
     url = f"{cfg['url'].rstrip('/')}/api/v3/movie"

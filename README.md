@@ -22,7 +22,7 @@ The easiest way to run Deletarr is via Docker.
 ```bash
 docker run -d \
   --name=deletarr \
-  -p 5000:5000 \
+  -p 8000:8000 \
   -v /path/to/config:/config \
   -v /path/to/movies:/movies \
   -v /path/to/tv:/tv \
@@ -30,7 +30,18 @@ docker run -d \
   stefanc/deletarr:latest
 ```
 
-3. Access the Web UI at `http://localhost:5000`.
+3. Access the Web UI at `http://localhost:8000`.
+
+The image is multi-arch (`linux/amd64`, `linux/arm64`) — pulling `:latest` will resolve to the right architecture automatically.
+
+## TrueNAS SCALE Setup
+
+When installing as a "Custom App" in TrueNAS SCALE:
+1. **Image**: `stefanc/deletarr:latest` (or pin a specific version like `:v1.3.0` if you don't want automatic updates).
+2. Under **Networking**, map Container Port `8000` to a Node Port (e.g., `30080`).
+3. Under **Web UI**, enter that same Node Port to enable the "WebUI" button in the Apps dashboard.
+
+Each release re-tags `:latest` on Docker Hub, so updating from TrueNAS picks up the new image on the next pull.
 
 ## Configuration
 
@@ -39,12 +50,14 @@ All configuration is handled through the Web UI. Upon first run, you can set up 
 - Radarr/Sonarr API details and root folders
 - Safety limits (Max delete percentage, Min seed days)
 
-## Development and Pushing
+## Development and Releasing
 
-The project includes utility scripts for developers:
+Docker Hub publishing is handled by GitHub Actions ([.github/workflows/docker-build.yml](.github/workflows/docker-build.yml)) — never run `docker push` locally.
 
-- `./push-dev.sh`: Stages, commits, and pushes to Git, then builds and pushes a `dev` tagged Docker image.
-- `./push-release.sh`: Handles versioning, Git tagging, and pushes `latest` and versioned Docker images.
+- **Day-to-day commits**: just `git add . && git commit -m "..." && git push`. CI builds on every push to `main` as a sanity check but does **not** publish to Docker Hub.
+- **Releasing a new version**: bump [version.txt](version.txt), then run `./push-release.sh`. It commits, tags, and pushes — CI then builds multi-arch and publishes `:vX.Y.Z`, `:X.Y`, and `:latest` to Docker Hub.
+
+You can watch the release run with `gh run watch --workflow=docker-build.yml`.
 
 ## Disclaimer
 

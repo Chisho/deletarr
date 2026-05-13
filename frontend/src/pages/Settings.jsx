@@ -223,7 +223,6 @@ export default function Settings() {
                                 { label: 'Error', value: 'ERROR' }
                             ]}
                         />
-                        <Field label="Max Delete %" path="logging.max_delete_percent" type="number" />
                     </CardContent>
                 </Card>
 
@@ -253,8 +252,9 @@ export default function Settings() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Field label="Min Seed Days" path="Radarr.min_seed_days" type="number" />
-                            <Field label="API Key" path="Radarr.api_key" type="password" />
+                            <Field label="Max Delete %" path="Radarr.max_delete_percent" type="number" />
                         </div>
+                        <Field label="API Key" path="Radarr.api_key" type="password" />
                         <Field label="Root Folder" path="Radarr.root_folder" />
                     </CardContent>
                 </Card>
@@ -271,8 +271,9 @@ export default function Settings() {
                         </div>
                         <div className="grid grid-cols-2 gap-4">
                             <Field label="Min Seed Days" path="Sonarr.min_seed_days" type="number" />
-                            <Field label="API Key" path="Sonarr.api_key" type="password" />
+                            <Field label="Max Delete %" path="Sonarr.max_delete_percent" type="number" />
                         </div>
+                        <Field label="API Key" path="Sonarr.api_key" type="password" />
                         <Field label="Root Folder" path="Sonarr.root_folder" />
                     </CardContent>
                 </Card>
