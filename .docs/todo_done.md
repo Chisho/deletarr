@@ -55,6 +55,9 @@ Only DONE items. For open tasks, see `.docs/todo.md`.
 ### BUG-13 [Low] — `Settings.jsx` mutates a shallow-cloned config object
 **Done:** [frontend/src/pages/Settings.jsx](frontend/src/pages/Settings.jsx) — `updateField` now uses `structuredClone(editedConfig)` instead of `{...editedConfig}` + nested walk, so nested objects are properly copied before mutation.
 
+### BUG-14 [Medium] — Empty exception messages leak through as "Unknown error occurred"
+**Done:** [deletarr/main.py](deletarr/main.py) — the generic `except Exception` at the end of `run_deletarr` now does `error_msg = str(e) or type(e).__name__` so message-less exceptions (e.g. qbittorrent-api's `LoginFailed`) surface their class name instead of an empty string. Also added `logging.debug("Traceback:", exc_info=True)` so the full traceback shows up at DEBUG level. Bundled into v1.4.2 alongside the `qbittorrent-api` upgrade that fixes the underlying qBit 5.x 204-on-login compatibility issue.
+
 ## CR
 
 _No completed change requests yet._

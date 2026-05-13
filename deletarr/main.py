@@ -109,10 +109,14 @@ def run_deletarr(config_path=None, dry_run=None):
             "error": str(e)
         }
     except Exception as e:
-        logging.error(f"Run failed: {e}")
+        # Some libraries (e.g. qbittorrent-api's LoginFailed) raise with an empty message.
+        # Fall back to the class name so the user gets *something* actionable.
+        error_msg = str(e) or type(e).__name__
+        logging.error(f"Run failed: {error_msg}")
+        logging.debug("Traceback:", exc_info=True)
         return {
             "success": False,
-            "error": str(e)
+            "error": error_msg
         }
 
 def main():

@@ -1,5 +1,5 @@
 PyYAML==6.0.2
-qbittorrent-api==2025.4.1
+qbittorrent-api==2026.5.1
 requests==2.32.3
 setuptools==78.1.0
 urllib3==2.4.0

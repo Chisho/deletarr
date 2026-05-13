@@ -47,5 +47,5 @@ git push --follow-tags
 echo "--------------------------------------------------"
 echo "Pushed $VERSION to Git."
 echo "CI will build and publish to Docker Hub automatically."
-echo "Watch the run: gh run watch --workflow=docker-build.yml"
+echo "Watch the run: gh run watch \$(gh run list --workflow=docker-build.yml --limit 1 --json databaseId -q '.[0].databaseId')"
 echo "--------------------------------------------------"
